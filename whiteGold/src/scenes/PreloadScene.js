@@ -10,12 +10,15 @@ import Phaser from 'phaser';
 // Classe que define a cena de carregamento
 export default class PreloadScene extends Phaser.Scene {
 
+
   // Construtor
   constructor() {
     super({ key: 'PreloadScene' });
   }
 
   // ---------------------------------------------------------------------------
+
+
 
   // Carrega os assets utilizados pelo jogo
   preload() {
@@ -53,13 +56,21 @@ export default class PreloadScene extends Phaser.Scene {
       frameWidth: 920, frameHeight: 720
     });
 
-    // Projétil do Inimigo 
+    // Bola de Fogo do Boss Ataque 1
     this.load.spritesheet('enemy_fireball', 'assets/images/spritesheets/enemyFireBall.png', {
-      frameWidth: 32, frameHeight: 32 
+      frameWidth: 640, frameHeight: 500
+    });
+
+    // Meteoro / Ataque Ataque 2
+    this.load.spritesheet('enemy_meteor', 'assets/images/spritesheets/enemyMeteor.png', {
+      frameWidth: 300, frameHeight: 260
     });
 
     //coração de vida
     this.load.image('heart', 'assets/images/heart.png');
+
+    // imagem do final do jogo(vitoria)
+    this.load.image('princess', 'assets/images/princess.png');
   }
 
   // ---------------------------------------------------------------------------
@@ -67,7 +78,7 @@ export default class PreloadScene extends Phaser.Scene {
   // Inicializa os elementos da cena
   create() {
     // Muda para a cena principal do jogo
-    this.scene.start('GameScene');
+    this.scene.start('StartScene');
   }
 
   // ---------------------------------------------------------------------------

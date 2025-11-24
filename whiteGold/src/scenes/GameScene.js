@@ -10,12 +10,9 @@ import Phaser from 'phaser';
 export default class GameScene extends Phaser.Scene {
 
   constructor(config) {
-    // Define a chave da cena e armazena as configurações compartilhadas
     super({ key: 'GameScene' }, config);
     this.config = config;
   }
-
-  // ---------------------------------------------------------------------------
 
   // Inicializa as propriedades da cena
   init() {
@@ -31,7 +28,7 @@ export default class GameScene extends Phaser.Scene {
     //inimigo
     this.enemies = null;
     this.mobsDefeated = 0; // Contador
-    this.maxMobsBeforeBoss = 5; // Meta
+    this.maxMobsBeforeBoss = 5; // Meta De Kills
 
     this.clouds = null;
 
@@ -39,64 +36,64 @@ export default class GameScene extends Phaser.Scene {
     this.playerHealth = this.playerMaxHealth;
     this.hearts = [];
 
-  }
+    this.isInvulnerable = false;
 
-  // ---------------------------------------------------------------------------
+  }
 
   // Cria os elementos visuais e lógicos da cena
   create() {
 
-    // Cria o cenário de fundo e o chão
+    // Cenário e Animações
     this.createBackground();
-
-    // Registra as animações do player e do inimigo
     this.registerPlayerAnimations();
     this.registerProjectileAnimations();
     this.registerEnemyAnimations();
     this.registerBossAnimations();
-    this.enemyProjectiles = this.physics.add.group();
 
+
+    this.enemyProjectiles = this.physics.add.group();
     this.createProjectilesGroup();
+
+
+    this.createPlayer();
+
+    this.createHealingHeartsGroup();
     this.createEnemyGroup();
 
 
-
-    // Cria o player e o inimigo
-    this.createPlayer();
-
+    // Restante das Configurações
     this.createHealthHUD();
-
-
-    // Configura as propriedades físicas do player
     this.player.setCollideWorldBounds(true);
-
-    // Configura entrada de teclado e mouse
     this.cursorKeys = this.input.keyboard.createCursorKeys();
     this.input.mouse.disableContextMenu();
 
+    // Colisões Manuais
     this.physics.add.overlap(this.player, this.enemyProjectiles, (player, projectile) => {
-      projectile.destroy(); // Destrói a bola de fogo
-      this.playerHit(player, projectile); // Dá dano no player
+      projectile.destroy();
+      this.playerHit(player, projectile);
     }, null, this);
 
     this.physics.add.overlap(this.player, this.enemies, this.playerHit, null, this);
 
-    // Registra o evento para quando a animação de ataque terminar
     this.player.on('animationcomplete-player_attack', this.onPlayerAttackComplete, this);
-
     this.player.on('animationupdate', this.onPlayerAttackFrame, this);
 
-    // --- TIMER PARA CRIAR MORCEGOS ---
+    // Timers
     this.time.addEvent({
-      delay: 2000, // A cada 2 segundos
+      delay: 2000,
       callback: this.spawnEnemy,
       callbackScope: this,
       loop: true
     });
 
-  }
+    this.time.addEvent({
+      delay: 8000,
+      callback: this.spawnHealingHeart,
+      callbackScope: this,
+      loop: true
+    });
 
-  // ---------------------------------------------------------------------------
+  }
 
   // Atualiza a lógica do jogo a cada frame
   update() {
@@ -173,23 +170,19 @@ export default class GameScene extends Phaser.Scene {
 
   }
 
-  // ---------------------------------------------------------------------------
-  // Funções auxiliares
-  // ---------------------------------------------------------------------------
-
   // Método para criar o cenário de fundo
   createBackground() {
-    // 1. Fundo Fixo
+    //  Fundo Fixo
     this.add.image(this.config.width / 2, this.config.height / 2, 'bg1')
       .setScrollFactor(0)
       .setDisplaySize(this.config.width, this.config.height);
 
-    // 2. Lua (Canto superior direito)
+    //  Lua (Canto superior direito)
     this.add.image(this.config.width - 100, 100, 'moon')
       .setScale(0.5)
       .setScrollFactor(0);
 
-    // 3. Grupo de Nuvens (Com Física para se moverem)
+    // Grupo de Nuvens (Com Física para se moverem)
     this.clouds = this.physics.add.group();
 
     // Spawna nuvens iniciais para a tela não começar vazia
@@ -216,7 +209,7 @@ export default class GameScene extends Phaser.Scene {
     // Posição Y aleatória no céu
     const startY = Phaser.Math.Between(50, this.config.height / 2);
 
-    // Pega uma nuvem do grupo (reaproveitamento) ou cria nova
+    // Pega uma nuvem do grupo ou cria nova
     let cloud = this.clouds.get(startX, startY, cloudKey);
 
     if (cloud) {
@@ -226,21 +219,18 @@ export default class GameScene extends Phaser.Scene {
 
       cloud.setDepth(0);
 
-      // Estilo
       const scale = Phaser.Math.FloatBetween(0.5, 1.0);
       cloud.setScale(scale);
       cloud.setAlpha(0.9);
 
       // Física: Move para a esquerda
-      // Nuvens menores (mais longe) se movem mais devagar -> Efeito 3D
+      // Nuvens menores se movem mais devagar 
       const speed = 50 * scale;
       cloud.body.setVelocityX(-speed);
       cloud.body.setAllowGravity(false); // Nuvem não cai
     }
   }
 
-
-  // ---------------------------------------------------------------------------
 
   // Método para criar o chão da cena
   createGround() {
@@ -263,32 +253,32 @@ export default class GameScene extends Phaser.Scene {
 
   }
 
-  // ---------------------------------------------------------------------------
-
   // Método para criar o player
   createPlayer() {
-
-    // Adiciona o primeiro sprite do player
     this.player = this.physics.add.sprite(
       200,
       this.config.height * 0.5,
       'player'
     ).setScale(0.25);
 
+    // --- HITBOX DO PLAYER ---
 
-    // Executa a animação do player parado
+    const hitWidth = 624 * 0.5;  
+    const hitHeight = 554 * 0.6; 
+
+    this.player.body.setSize(hitWidth, hitHeight);
+
+    // Centraliza o hitbox na imagem
+    const offsetX = (624 - hitWidth) / 2;
+    const offsetY = (554 - hitHeight) / 2;
+    this.player.body.setOffset(offsetX, offsetY);
+
     this.player.play('player_idle', true);
-
     this.player.setDepth(10);
-
+    this.player.setCollideWorldBounds(true);
   }
 
-  // ---------------------------------------------------------------------------
-
-  // Registra as animações do player
   registerPlayerAnimations() {
-    // Frames 0 - 3: IDLE (Parado/Voo)
-    // Frames 4 - 7: ATTACK (Disparo)
 
     // Cria a animação do player parado (IDLE/Voo)
     this.anims.create({
@@ -312,21 +302,20 @@ export default class GameScene extends Phaser.Scene {
     this.anims.create({
       key: 'fire_loop',
       frames: this.anims.generateFrameNumbers('fireball', { start: 0, end: 7 }),
-      frameRate: 15, // Velocidade da animação (10 quadros por segundo)
-      repeat: -1 // Repetição infinita
+      frameRate: 15,
+      repeat: -1
     });
   }
 
   // Método chamado ao final da animação de ataque
   onPlayerAttackComplete(animation, frame) {
     if (animation.key === 'player_attack') {
-      // Volta para a animação de idle ou walk após o ataque
+      // Volta para a animação de idle após o ataque
       this.player.play('player_idle', true);
     }
   }
 
   onPlayerAttackFrame(animation, frame) {
-    // Verifica se é a animação 'player_attack'
     if (animation.key === 'player_attack') {
       // O 'frame.index' conta os frames da animação atual (de 1 a 4) e atira no ultimo frame
       if (frame.index === 4) {
@@ -338,7 +327,6 @@ export default class GameScene extends Phaser.Scene {
   // Cria o grupo de projéteis para gerenciamento de colisões e pooling
   createProjectilesGroup() {
     this.projectiles = this.physics.add.group({
-      // O defaultKey deve ser o spritesheet
       defaultKey: 'fireball',
       runChildUpdate: true
     });
@@ -346,8 +334,7 @@ export default class GameScene extends Phaser.Scene {
 
   // Lógica de disparo
   shootProjectile() {
-    // Pega um projétil do grupo (ou cria se não tiver)
-    // Nota: passamos x e y aqui, mas o enableBody garante o reset
+    // Pega um projétil do grupo
     const projectile = this.projectiles.get(this.player.body.center.x, this.player.body.center.y);
 
     if (projectile) {
@@ -359,6 +346,10 @@ export default class GameScene extends Phaser.Scene {
       projectile.setFrame(0);
       projectile.setScale(0.15);
       projectile.play('fire_loop', true);
+
+      projectile.setDepth(10);
+
+      projectile.body.setSize(projectile.width * 0.5, projectile.height * 0.6, true);
 
       const direction = this.player.flipX ? -1 : 1;
       const projectileSpeed = 800;
@@ -380,7 +371,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
 
-  // Cria o HUD de vida (Corações)
+  // Cria o HUD de vida 
   createHealthHUD() {
     const heartSpacing = 50;
     const initialX = 50;
@@ -392,8 +383,8 @@ export default class GameScene extends Phaser.Scene {
         initialY,
         'heart'
       ).setScrollFactor(0) // Faz o HUD acompanhar a câmera
-        .setDepth(10)      // Garante que fique por cima
-        .setScale(0.05);    // Ajuste o tamanho
+        .setDepth(10)      
+        .setScale(0.05);
       this.hearts.push(heart);
     }
   }
@@ -402,7 +393,6 @@ export default class GameScene extends Phaser.Scene {
   updateHealthHUD() {
     for (let i = 0; i < this.playerMaxHealth; i++) {
       // Se o índice for menor que a vida atual, mostra o coração
-      // Caso contrário, esconde/muda para um coração vazio (se tiver o asset)
       this.hearts[i].setVisible(i < this.playerHealth);
     }
   }
@@ -414,7 +404,6 @@ export default class GameScene extends Phaser.Scene {
     this.playerHealth -= amount;
 
     // Atualiza o visual dos corações
-    // (Esconde os corações baseados na vida atual)
     for (let i = 0; i < this.hearts.length; i++) {
       if (i < this.playerHealth) {
         this.hearts[i].setVisible(true);
@@ -424,11 +413,11 @@ export default class GameScene extends Phaser.Scene {
     }
 
     if (this.playerHealth <= 0) {
-      console.log('Game Over!');
       // Pausa a física e pinta o jogador de vermelho escuro
       this.physics.pause();
       this.player.setTint(0xff0000);
-      // Aqui virá o game over
+
+      this.showGameOver();
     }
   }
 
@@ -442,155 +431,242 @@ export default class GameScene extends Phaser.Scene {
   }
 
 
-  // ---------------------------------------------------------------------------
-
-  // Método que controla o ataque do inimigo
-  handleEnemyAttack() {
-
-    // Indica se o inimigo está atacando o player
-    // TODO
-
-    // Obtém a distância entre o inimigo e o player
-    // TODO
-
-    // Se o inimigo estiver perto do player
-    if (distanceToPlayer < this.distanceToAttack) {
-
-      // Executa a animação de ataque
-      // TODO
-
-      // Enquanto ataca, não deixa o inimigo se movimentar
-      // TODO
-
-    }
-    else {
-      // Movimenta o inimigo
-      // TODO
-    }
-
-  }
-
-  // ---------------------------------------------------------------------------
-
   registerBossAnimations() {
-    // Animação dele parado/voando (Idle)
+
+    // IDLE
     this.anims.create({
       key: 'boss_idle',
-      frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 3 }),
+      frames: this.anims.generateFrameNumbers('boss', { start: 15, end: 19 }),
       frameRate: 8,
       repeat: -1
     });
 
+    // ATAQUE 1 
+    this.anims.create({
+      key: 'boss_atk1',
+      frames: this.anims.generateFrameNumbers('boss', { start: 20, end: 23 }),
+      frameRate: 10,
+      repeat: 0
+    });
+
+    // ATAQUE 2
+    this.anims.create({
+      key: 'boss_atk2',
+      frames: this.anims.generateFrameNumbers('boss', { frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13] }), // definido assim pois o frame 9 deve ser ignorado
+      frameRate: 12,
+      repeat: 0
+    });
+
+    // MORTE 
+    this.anims.create({
+      key: 'boss_die',
+      frames: this.anims.generateFrameNumbers('boss', { start: 25, end: 26 }),
+      frameRate: 1,
+      repeat: 0
+    });
+
+    // PROJETEIS
+
+    // Bola de Fogo 
+    this.anims.create({
+      key: 'anim_enemy_fireball',
+      frames: this.anims.generateFrameNumbers('enemy_fireball', { start: 0, end: 7 }),
+      frameRate: 10,
+      repeat: -1
+    });
+
+    // Meteoro
+    this.anims.create({
+      key: 'anim_enemy_meteor',
+      frames: this.anims.generateFrameNumbers('enemy_meteor', { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1
+    });
   }
 
-  spawnBoss() {
-    // Posiciona o Boss entrando pela direita
-    const x = this.config.width + 150;
-    const y = this.config.height / 2; // No meio da altura
+  // GameScene.js
 
-    // Cria o sprite (usando a chave 'boss' do Preload)
+  // LÓGICA DO BOSS 
+
+  spawnBoss() {
+    const x = this.config.width + 200;
+    const y = this.config.height / 2;
+
     this.boss = this.physics.add.sprite(x, y, 'boss');
 
-    this.boss.setScale(0.25);
+    this.boss.setScale(0.4);
     this.boss.setDepth(10);
-
-    // Física
     this.boss.body.setAllowGravity(false);
     this.boss.setImmovable(true);
 
-    // Animação Inicial
-    this.boss.play('boss_idle');
+    // HITBOX DO BOSS
+    const hitWidth = 920 * 0.6;
+    const hitHeight = 720 * 0.7;
 
+    // Define o tamanho da caixa de colisão
+    this.boss.body.setSize(hitWidth, hitHeight);
+
+    // Centraliza essa caixa dentro do sprite
+    const offsetX = (920 - hitWidth) / 2;
+    const offsetY = (720 - hitHeight) / 2;
+    this.boss.body.setOffset(offsetX, offsetY);
+
+    // Status do Boss
     this.boss.health = 20;
+    this.boss.maxHealth = 20;
+    this.boss.isAttacking = false;
+    this.boss.isDead = false; // Trava de segurança para o boss não morrer várias vezes
+    this.boss.phase1Triggered = false;
+    this.boss.phase2Triggered = false;
 
-    // Movimento de Entrada (Entra na tela e para)
+    this.boss.play('boss_idle');
     this.tweens.add({
       targets: this.boss,
-      x: this.config.width - 150,
+      x: this.config.width - 200,
       duration: 2000,
       ease: 'Power2',
       onComplete: () => {
-        // O Boss só começa a atacar depois que entra na tela
-        this.startBossAttacks();
+        this.startBossRoutine();
       }
     });
 
-    // --- COLISÕES DO BOSS ---
-    // Tiro acerta Boss
     this.physics.add.overlap(this.projectiles, this.boss, this.hitBoss, null, this);
-
-    // Player bate no Boss
     this.physics.add.overlap(this.player, this.boss, this.playerHit, null, this);
   }
 
-  hitBoss(projectile, boss) {
-    projectile.disableBody(true, true);
-
-    console.log("antes do tiro",boss.health);
-
-    boss.health -= 1;
-
-    console.log("antes do tiro",boss.health);
-
-    boss.setTint(0xff0000);
-    this.time.delayedCall(100, () => boss.clearTint());
-
-    console.log(`Vida do Boss: ${boss.health}`);
-
-    if (boss.health <= 0) {
-      // Para tudo
-      boss.setVelocity(0);
-      // Toca animação de morte 
-      this.tweens.add({
-        targets: boss,
-        angle: 360,
-        scale: 0,
-        duration: 1000,
-        onComplete: () => {
-          boss.destroy();
-          console.log("PARABÉNS! VOCÊ SALVOU A PRINCESA !");
-          // Aqui virá a tela de vitoria
-        }
-      });
-    }
-  }
-
-  startBossAttacks() {
-    // Cria um timer que repete indefinidamente
+  // O Boss tenta usar o Ataque 1 a cada 3 segundos, SE não estiver ocupado
+  startBossRoutine() {
     this.bossAttackTimer = this.time.addEvent({
-      delay: 2000, // Boss ataca a cada 2 segundos
-      callback: this.bossAttack1,
+      delay: 3000,
+      callback: () => {
+        if (this.boss.active && !this.boss.isAttacking) {
+          this.bossAttack1();
+        }
+      },
       callbackScope: this,
       loop: true
     });
   }
 
+  // --- ATAQUE 1: BOLA DE FOGO
   bossAttack1() {
-    // Se o boss ou player morreram, para de atacar
-    if (!this.boss.active || !this.player.active) return;
+    this.boss.isAttacking = true;
+    this.boss.play('boss_atk1'); 
 
-    // Cria o projétil na posição do Boss
-    const projectile = this.enemyProjectiles.create(this.boss.x - 50, this.boss.y, 'enemy_fireball');
+    // sincronia com animação e solta o fogo
+    this.time.delayedCall(500, () => {
+      if (!this.boss.active) return;
 
-    if (projectile) {
-      projectile.setScale(1); 
-      projectile.body.setAllowGravity(false);
+      // Cria o projétil
+      const fireball = this.enemyProjectiles.create(this.boss.x - 50, this.boss.y, 'enemy_fireball');
+      if (fireball) {
+        fireball.setScale(0.15);
 
-      // FÍSICA: Atira na direção onde o player está AGORA
-      this.physics.moveToObject(projectile, this.player, 400); 
+        fireball.play('anim_enemy_fireball');
+        fireball.body.setAllowGravity(false);
 
-      // Gira o projétil para olhar para o player
-      projectile.rotation = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.player.x, this.player.y);
+        // Mira no jogador
+        this.physics.moveToObject(fireball, this.player, 350);
+        fireball.rotation = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.player.x, this.player.y);
 
-      // Destrói depois de 3 segundos pra não pesar o jogo
-      this.time.delayedCall(3000, () => {
-        if (projectile.active) projectile.destroy();
+        // Destrói após 3s
+        this.time.delayedCall(3000, () => { if (fireball.active) fireball.destroy(); });
+      }
+    });
+
+    // Volta para Idle quando acabar a animação de ataque
+    this.boss.once('animationcomplete', () => {
+      if (this.boss.active) {
+        this.boss.play('boss_idle');
+        this.boss.isAttacking = false;
+      }
+    });
+  }
+
+  // --- ATAQUE 2: CHUVA DE METEOROS
+  bossAttack2() {
+    this.boss.isAttacking = true;
+    this.boss.play('boss_atk2'); 
+
+    //  Loop vai de 0 até 4 meteoros
+    for (let i = 0; i < 4; i++) {
+
+      this.time.delayedCall(i * 400, () => {
+        const randomX = Phaser.Math.Between(50, this.config.width - 50);
+        const meteor = this.enemyProjectiles.create(randomX, -150, 'enemy_meteor');
+
+        if (meteor) {
+          meteor.setScale(0.3);
+          meteor.play('anim_enemy_meteor');
+          meteor.body.setAllowGravity(false);
+          meteor.setVelocityY(500);
+
+          // Rotação para ficar de bico pra baixo
+          meteor.angle = -45;
+
+          // Destrói depois de 2 segundos
+          this.time.delayedCall(2000, () => { if (meteor.active) meteor.destroy(); });
+        }
+      });
+    }
+
+    // Volta para Idle quando acabar a animação do Boss
+    this.boss.once('animationcomplete', () => {
+      if (this.boss.active) {
+        this.boss.play('boss_idle');
+        this.boss.isAttacking = false;
+      }
+    });
+  }
+
+  // --- RECEBER DANO E GATILHOS DE FASE ---
+  hitBoss(obj1, obj2) {
+    let boss, projectile;
+    if (obj1.texture.key === 'boss') { boss = obj1; projectile = obj2; }
+    else { boss = obj2; projectile = obj1; }
+
+    if (projectile.active) projectile.disableBody(true, true);
+
+    // TRAVA DE MORTE
+    if (boss.isDead) return;
+
+    if (typeof boss.health === 'undefined') boss.health = 20;
+
+    boss.health -= 1;
+    boss.setTint(0xff0000);
+    this.time.delayedCall(100, () => { if (boss.active) boss.clearTint(); });
+
+    // FASES DO BOSS
+    if (boss.health <= 10 && !boss.phase1Triggered) {
+      boss.phase1Triggered = true;
+      this.bossAttack2();
+    }
+    else if (boss.health <= 5 && !boss.phase2Triggered) {
+      boss.phase2Triggered = true;
+      this.bossAttack2();
+    }
+
+    // MORTE RÁPIDA
+    if (boss.health <= 0) {
+      boss.isDead = true;
+      if (this.bossAttackTimer) this.bossAttackTimer.remove();
+
+      boss.setVelocity(0);
+      boss.body.checkCollision.none = true;
+
+      boss.play('boss_die');
+
+      this.time.delayedCall(500, () => {
+        boss.destroy();
+
+        this.showVictory();
       });
     }
   }
 
+  // ANIMAÇÕES DOS MORCEGOS
   registerEnemyAnimations() {
-    // Voo (Frames 0 a 3)
+    // Voo 
     this.anims.create({
       key: 'bat_fly',
       frames: this.anims.generateFrameNumbers('bat', { start: 0, end: 3 }),
@@ -598,7 +674,7 @@ export default class GameScene extends Phaser.Scene {
       repeat: -1
     });
 
-    // Morte/Fumaça (Frames 5 a 6)
+    // Morte/Fumaça 
     this.anims.create({
       key: 'bat_die',
       frames: this.anims.generateFrameNumbers('bat', { start: 4, end: 5 }),
@@ -629,7 +705,7 @@ export default class GameScene extends Phaser.Scene {
 
     if (enemy) {
       enemy.setScale(0.1);
-      enemy.setDepth(10); 
+      enemy.setDepth(10);
 
       // Física
       enemy.body.setAllowGravity(false);
@@ -664,29 +740,27 @@ export default class GameScene extends Phaser.Scene {
     }
     // Se morreu...
     else {
-      // 1. Para o movimento do morcego
+      // Para o movimento do morcego
       enemy.setVelocity(0);
 
-      // 2. Desativa o corpo físico (para o player não bater na fumaça e levar dano)
+      // Desativa o corpo físico (para o player não bater na fumaça e levar dano)
       enemy.body.checkCollision.none = true;
 
-      // 3. Toca a animação de fumaça
+      // Toca a animação de fumaça
       enemy.play('bat_die');
 
-      // 4. Lógica do Jogo (Contar a morte)
+      // Conta a morte
       this.mobsDefeated++;
-      console.log(`Morcegos derrotados: ${this.mobsDefeated}`);
 
       if (this.mobsDefeated === this.maxMobsBeforeBoss) {
-        console.log("O BOSS ESTÁ VINDO!");
 
-        // Espera 1 segundinho depois de matar o último morcego e chama o Boss
+        // Espera 1 segundo depois de matar o último morcego e chama o Boss
         this.time.delayedCall(1000, () => {
           this.spawnBoss();
         }, [], this);
       }
 
-      // 5. Destrói o objeto APÓS a animação terminar
+      // Destrói o objeto após a animação terminar
       enemy.once('animationcomplete', () => {
         enemy.destroy();
       });
@@ -694,32 +768,194 @@ export default class GameScene extends Phaser.Scene {
   }
 
   playerHit(player, enemy) {
-    // Se o player não estiver invisível/piscando (invulnerável)
-    if (player.alpha === 1) {
+    // Se já estiver invulnerável, ignora
+    if (this.isInvulnerable) return;
 
-      // Tira 1 de vida
-      this.takeDamage(1);
+    // TRAVA O DANO IMEDIATAMENTE
+    this.isInvulnerable = true;
 
-      // Empurrãozinho para trás (Feedback de impacto)
-      if (player.x < enemy.x) {
-        player.setVelocityX(-200);
-      } else {
-        player.setVelocityX(200);
-      }
+    // Tira 1 de vida
+    this.takeDamage(1);
 
-      // Invulnerabilidade temporária (pisca)
-      this.tweens.add({
-        targets: player,
-        alpha: 0.5, // Fica meio transparente
-        duration: 100,
-        repeat: 5, // Pisca 5 vezes
-        yoyo: true,
-        onComplete: () => {
-          player.setAlpha(1); // Volta ao normal
-          player.setVelocity(0); // Para o empurrão
-        }
-      });
+    // Empurrão
+    if (player.x < enemy.x) {
+      player.setVelocityX(-200);
+    } else {
+      player.setVelocityX(200);
     }
+
+    // Pisca o player (Feedback visual)
+    this.tweens.add({
+      targets: player,
+      alpha: 0.5,
+      duration: 100,
+      repeat: 5,
+      yoyo: true,
+      onComplete: () => {
+        player.setAlpha(1);
+        // LIBERA O DANO DE NOVO APÓS PISCAR
+        this.isInvulnerable = false;
+      }
+    });
+  }
+
+  createHealingHeartsGroup() {
+    this.healingHearts = this.physics.add.group();
+
+    // Colisão: Player pega o coração
+    this.physics.add.overlap(this.player, this.healingHearts, this.collectHeart, null, this);
+  }
+
+  spawnHealingHeart() {
+    // Se o jogo acabou ou player morreu, não dropa nada
+    if (!this.player.active || (this.boss && this.boss.isDead)) return;
+
+    // Posição X aleatória
+    const x = Phaser.Math.Between(50, this.config.width - 50);
+
+    // Cria o coração acima da tela
+    const heart = this.healingHearts.create(x, -50, 'heart');
+
+    if (heart) {
+      // Ajuste de escala 
+      heart.setScale(0.08);
+
+      // Física: Cai verticalmente
+      heart.body.setAllowGravity(false);
+      heart.setVelocityY(150); // Velocidade de queda
+
+      // Limpeza
+      heart.checkWorldBounds = true;
+      heart.outOfBoundsKill = true;
+    }
+  }
+
+  collectHeart(player, heart) {
+    // Some com o coração da tela
+    heart.disableBody(true, true);
+
+    // Chama a função de curar (que já atualiza o HUD)
+    this.heal(1);
+
+    // Efeito visual ao pegar (piscar verde)
+    player.setTint(0x00ff00);
+    this.time.delayedCall(200, () => player.clearTint());
+  }
+
+  showGameOver() {
+    // Pausa o jogo
+    this.physics.pause();
+    this.player.setTint(0xff0000);
+    this.player.anims.stop();
+
+    // Fundo Escuro 
+    const { width, height } = this.config;
+    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
+      .setDepth(90)
+      .setScrollFactor(0);
+
+    // Texto "DERROTA"
+    this.add.text(width / 2, height / 2 - 100, 'DERROTA', {
+      fontSize: '80px',
+      fontFamily: 'Arial Black',
+      color: '#ff0000',
+      stroke: '#ffffff',
+      strokeThickness: 6
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
+
+    this.createButton(width / 2, height / 2 + 50, 'Tentar Novamente', () => {
+      this.scene.restart();
+    });
+
+    this.createButton(width / 2, height / 2 + 120, 'Menu', () => {
+      this.scene.start('StartScene');
+    });
+  }
+
+  showVictory() {
+    // Pausa o jogo
+    this.physics.pause();
+
+
+    // Fundo Escuro 
+    const { width, height } = this.config;
+    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+      .setDepth(90)
+      .setScrollFactor(0);
+
+    // Texto "VITÓRIA"
+    this.add.text(width / 2, height / 2 - 150, 'VITÓRIA!', {
+      fontSize: '80px',
+      fontFamily: 'Arial Black',
+      color: '#ffd700', 
+      stroke: '#ffffff',
+      strokeThickness: 6
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
+
+    this.add.text(width / 2, height / 2 - 80, 'Você resgatou a princesa!', {
+      fontSize: '32px',
+      fontFamily: 'Arial',
+      color: '#ffffff'
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
+
+
+
+    // Player (Parado)
+    this.add.sprite(width / 2 - 40, height / 2 + 20, 'player')
+      .setFrame(0) // Frame parado
+      .setScale(0.3) // Ajuste a escala
+      .setDepth(100)
+      .setScrollFactor(0);
+
+    // Princesa (Ao lado)
+    // Se você ainda não tem a imagem, vai ficar um quadrado verde, mas não trava o jogo
+    this.add.image(width / 2 + 40, height / 2 + 20, 'princess')
+      .setScale(0.3)
+      .setDepth(100)
+      .setScrollFactor(0);
+
+    // Coraçãozinho entre eles <3
+    this.add.image(width / 2, height / 2 - 20, 'heart')
+      .setScale(0.05)
+      .setDepth(101)
+      .setScrollFactor(0);
+
+
+
+    this.createButton(width / 2, height / 2 + 120, 'Jogar Novamente', () => {
+      this.scene.restart();
+    });
+
+    this.createButton(width / 2, height / 2 + 190, 'Menu', () => {
+      this.scene.start('StartScene');
+    });
+  }
+
+  createButton(x, y, text, onClick) {
+    const button = this.add.text(x, y, text, {
+      fontSize: '32px',
+      fontFamily: 'Arial',
+      color: '#ffffff',
+      backgroundColor: '#000000'
+    })
+      .setOrigin(0.5)
+      .setPadding(10)
+      .setDepth(100)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+
+    // Efeito Hover (Mouse em cima)
+    button.on('pointerover', () => {
+      button.setStyle({ fill: '#ffff00', backgroundColor: '#333333' });
+    });
+
+    // Efeito Out (Mouse sai)
+    button.on('pointerout', () => {
+      button.setStyle({ fill: '#ffffff', backgroundColor: '#000000' });
+    });
+
+    // Clique
+    button.on('pointerdown', onClick);
   }
 
 }

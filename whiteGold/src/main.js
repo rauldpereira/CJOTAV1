@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 // Importa as cenas do jogo
 import PreloadScene from './scenes/PreloadScene.js';
 import GameScene from './scenes/GameScene.js';
+import StartScene from './scenes/StartScene';
 
 // -----------------------------------------------------------------------------
 // Configurações globais
@@ -26,6 +27,7 @@ const SHARED_CONFIG = {
 // Lista das cenas que compõem o jogo
 const SCENES = [
   PreloadScene,
+  StartScene,
   GameScene
 ]
 
