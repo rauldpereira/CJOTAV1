@@ -872,61 +872,61 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  showVictory() {
-    // Pausa o jogo
+showVictory() {
+    //  Pausa o jogo
     this.physics.pause();
 
-
-    // Fundo Escuro 
+    // Fundo Escuro
     const { width, height } = this.config;
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
-      .setDepth(90)
-      .setScrollFactor(0);
+        .setDepth(90)
+        .setScrollFactor(0);
 
-    // Texto "VITÓRIA"
+    // Textos 
     this.add.text(width / 2, height / 2 - 150, 'VITÓRIA!', {
-      fontSize: '80px',
-      fontFamily: 'Arial Black',
-      color: '#ffd700', 
-      stroke: '#ffffff',
-      strokeThickness: 6
+        fontSize: '80px',
+        fontFamily: 'Arial Black',
+        color: '#ffd700',
+        stroke: '#ffffff',
+        strokeThickness: 6
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
     this.add.text(width / 2, height / 2 - 80, 'Você resgatou a princesa!', {
-      fontSize: '32px',
-      fontFamily: 'Arial',
-      color: '#ffffff'
+        fontSize: '32px',
+        fontFamily: 'Arial',
+        color: '#ffffff'
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
 
+    const coupleCenterX = width * 0.80; 
+    const coupleY = height / 2 + 50;
 
-    // Player Vitorioso
-    this.add.sprite(width / 2 - 40, height / 2 + 20, 'playerWin')
-      .setFrame(0)
-      .setScale(0.3)
-      .setDepth(100)
-      .setScrollFactor(0);
+    // Player 
+    this.add.sprite(coupleCenterX - 30, coupleY, 'playerWin')
+        .setFrame(0)
+        .setScale(0.2) 
+        .setDepth(100)
+        .setScrollFactor(0);
 
-    // Princesa 
-    this.add.image(width / 2 + 40, height / 2 + 20, 'princess')
-      .setScale(0.3)
-      .setDepth(100)
-      .setScrollFactor(0);
+    // Princesa
+    this.add.image(coupleCenterX + 30, coupleY, 'princess')
+        .setScale(0.2) 
+        .setDepth(100)
+        .setScrollFactor(0);
 
-    // Coraçãozinho entre eles <3
-    this.add.image(width / 2, height / 2 - 20, 'heart')
-      .setScale(0.05)
-      .setDepth(101)
-      .setScrollFactor(0);
+    // Coraçãozinho
+    this.add.image(coupleCenterX, coupleY - 30, 'heart')
+        .setScale(0.04)
+        .setDepth(101)
+        .setScrollFactor(0);
 
-
-
-    this.createButton(width / 2, height / 2 + 120, 'Jogar Novamente', () => {
-      this.scene.restart();
+    // Botões
+    this.createButton(width / 2, height / 2 + 150, 'Jogar Novamente', () => {
+        this.scene.restart();
     });
 
-    this.createButton(width / 2, height / 2 + 190, 'Menu', () => {
-      this.scene.start('StartScene');
+    this.createButton(width / 2, height / 2 + 220, 'Menu', () => {
+        this.scene.start('StartScene');
     });
   }
 

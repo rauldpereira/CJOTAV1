@@ -21,7 +21,7 @@ const HEIGHT = 700;
 const SHARED_CONFIG = {
   width: WIDTH,
   height: HEIGHT,
-  debug: true
+  debug: false
 };
 
 // Lista das cenas que compõem o jogo
