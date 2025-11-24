@@ -71,6 +71,7 @@ export default class PreloadScene extends Phaser.Scene {
 
     // imagem do final do jogo(vitoria)
     this.load.image('princess', 'assets/images/princess.png');
+    this.load.image('playerWin', 'assets/images/playerVictory.png');
   }
 
   // ---------------------------------------------------------------------------

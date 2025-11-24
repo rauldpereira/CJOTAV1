@@ -900,15 +900,14 @@ export default class GameScene extends Phaser.Scene {
 
 
 
-    // Player (Parado)
-    this.add.sprite(width / 2 - 40, height / 2 + 20, 'player')
-      .setFrame(0) // Frame parado
-      .setScale(0.3) // Ajuste a escala
+    // Player Vitorioso
+    this.add.sprite(width / 2 - 40, height / 2 + 20, 'playerWin')
+      .setFrame(0)
+      .setScale(0.3)
       .setDepth(100)
       .setScrollFactor(0);
 
-    // Princesa (Ao lado)
-    // Se você ainda não tem a imagem, vai ficar um quadrado verde, mas não trava o jogo
+    // Princesa 
     this.add.image(width / 2 + 40, height / 2 + 20, 'princess')
       .setScale(0.3)
       .setDepth(100)
